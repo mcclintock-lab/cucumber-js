@@ -85,6 +85,10 @@ describe("Cucumber.SupportCode.StepDefinition", function() {
         it("supplies a function to the step to let it claim its pendingness", function() {
           expect(codeExecutionCallback.pending).toBeAFunction();
         });
+
+        it("supplies a function to the step to let it notify of a failure", function() {
+          expect(codeExecutionCallback.failure).toBeAFunction();
+        });
       });
 
       describe("pending()", function() {
@@ -106,6 +110,27 @@ describe("Cucumber.SupportCode.StepDefinition", function() {
           expect(function() { pendingFunction(reason) }).toThrow(exception);
         });
       });
+
+      describe("failure()", function() {
+        var failureFunction, reason, exception;
+
+        beforeEach(function() {
+          reason          = createSpy("a reason for failing");
+          failureFunction = codeExecutionCallback.failure;
+          exception       = createSpy("failing step exception");
+          spyOn(Cucumber.Runtime, 'FailingStepException').andReturn(exception);
+        });
+
+        it("creates a 'failing step' exception with the reason", function() {
+          try { failureFunction(reason); } catch (e) { }
+          expect(Cucumber.Runtime.FailingStepException).toHaveBeenCalledWith(reason);
+        });
+
+        it("throws the failing step exception", function() {
+          expect(function() { failureFunction(reason) }).toThrow(exception);
+        });
+      });
+
     });
 
     describe("when the step calls back as pending", function() {
@@ -137,19 +162,20 @@ describe("Cucumber.SupportCode.StepDefinition", function() {
     });
 
     describe("when the step definition code fails", function() {
-      var failedStepResult, failureException;
+      var failingReason, exception, failedStepResult;
 
       beforeEach(function() {
-        failureException = createSpy("I am a failing step definition");
-        failedStepResult = createSpy("failed step result");
-        stepDefinitionCode.apply.andThrow(failureException);
+        failingReason     = createSpy("a reason for failing");
+        failedStepResult  = createSpy("failed step result");
+        exception         = Cucumber.Runtime.FailingStepException(failingReason);
+        stepDefinitionCode.apply.andThrow(exception);
         spyOn(Cucumber.Runtime, 'FailedStepResult').andReturn(failedStepResult);
         spyOn(Cucumber.Runtime, 'PendingStepResult');
       });
 
       it("creates a new failed step result", function() {
         stepDefinition.invoke(stepName, world, stepAttachment, callback);
-        expect(Cucumber.Runtime.FailedStepResult).toHaveBeenCalledWith(failureException);
+        expect(Cucumber.Runtime.FailedStepResult).toHaveBeenCalled();
       });
 
       it("does not create a new pending step result", function() {
