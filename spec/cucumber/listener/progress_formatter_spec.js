@@ -892,13 +892,6 @@ describe("Cucumber.Listener.ProgressFormatter", function() {
 
       it("logs the stack", function() {
         listener.logFailedStepResult(stepResult);
-        expect(listener.log).toHaveBeenCalledWith(failureException.stack);
-      });
-    });
-
-    describe("when the failure exception has no stack", function() {
-      it("logs the exception itself", function() {
-        listener.logFailedStepResult(stepResult);
         expect(listener.log).toHaveBeenCalledWith(failureException);
       });
     });
